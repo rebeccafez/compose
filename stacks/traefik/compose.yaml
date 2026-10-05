@@ -1,0 +1,57 @@
+services:
+  traefik:
+    image: traefik:v3.7.13
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
+    networks:
+      - proxy
+    ports:
+      - 80:80
+      - 443:443/tcp
+      - 443:443/udp
+    secrets:
+      - cf_dns_api_token
+    environment:
+      CF_DNS_API_TOKEN_FILE: /run/secrets/cf_dns_api_token
+    command:
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http.tls=true"
+
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=containers_proxy"
+
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+
+      - "--certificatesresolvers.le.acme.storage=/acme.json"
+      - "--certificatesresolvers.le.acme.dnschallenge=true"
+      - "--certificatesresolvers.le.acme.dnschallenge.provider=cloudflare"
+
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--metrics.prometheus=true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /srv/containers/state/traefik/acme.json:/acme.json
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`dashboard.lunarcatalyst.net`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certresolver=le"
+      - "traefik.http.routers.dashboard.middlewares=authelia@docker"
+
+networks:
+  proxy:
+
+secrets:
+  cf_dns_api_token:
+    file: ../../secrets/cf_dns_api_token.txt
