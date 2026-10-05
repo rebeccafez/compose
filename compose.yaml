@@ -1,0 +1,4 @@
+name: "homeserver"
+
+include:
+  - stacks/traefik/compose.yaml
