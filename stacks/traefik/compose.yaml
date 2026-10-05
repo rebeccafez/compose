@@ -54,4 +54,4 @@ networks:
 
 secrets:
   cf_dns_api_token:
-    file: secrets/cf_dns_api_token.txt
+    file: ../../secrets/cf_dns_api_token.txt
